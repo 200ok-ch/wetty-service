@@ -1,4 +1,4 @@
-OB#+TITLE: Wetty Service
+#+TITLE: Wetty Service
 #+AUTHOR: 200ok-ch
 #+DATE: 2025-08-07
 
