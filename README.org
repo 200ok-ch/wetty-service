@@ -1,0 +1,104 @@
+OB#+TITLE: Wetty Service
+#+AUTHOR: 200ok-ch
+#+DATE: 2025-08-07
+
+* Wetty as a Service 🚀
+
+A dynamic web terminal service built with Babashka that provides
+on-demand terminal sessions through a web interface. This service
+integrates Wetty (web-based terminal) with Traefik for dynamic routing
+and automatic session management.
+
+* Features
+
+- *Dynamic Session Management*: Creates isolated terminal sessions with unique URLs
+- *Traefik Integration*: Automatic reverse proxy configuration for each session
+- *Auto-cleanup*: Sessions automatically terminate after specified timeout
+- *RESTful API*: Simple HTTP API for session management
+- *Process Isolation*: Each session runs in its own process with configurable timeouts
+
+* API Endpoints
+
+** POST /api/execute
+
+Start a new terminal session with a specified command.
+
+*Request Body:*
+#+BEGIN_SRC json
+{
+  "command": "htop",
+  "timeout": 300
+}
+#+END_SRC
+
+*Response:*
+#+BEGIN_SRC json
+{
+  "url": "/session/550e8400-e29b-41d4-a716-446655440000",
+  "session-id": "550e8400-e29b-41d4-a716-446655440000",
+  "timeout": 300,
+  "expires-at": 1691234567890
+}
+#+END_SRC
+
+** GET /api/status
+
+List all active sessions and their status.
+
+*Response:*
+#+BEGIN_SRC json
+{
+  "active-sessions": 2,
+  "sessions": [
+    {
+      "session-id": "550e8400-e29b-41d4-a716-446655440000",
+      "command": "htop",
+      "port": 9123,
+      "uptime": 45000
+    }
+  ]
+}
+#+END_SRC
+
+** DELETE /api/cleanup/:session-id
+
+Manually cleanup a specific session.
+
+*Response:*
+#+BEGIN_SRC json
+{
+  "message": "Session cleaned up"
+}
+#+END_SRC
+
+* Usage Example
+
+1. *Start a new session:*
+   #+BEGIN_SRC bash
+   curl -X POST http://localhost/api/execute \
+     -H "Content-Type: application/json" \
+     -d '{"command": "htop", "timeout": 300}'
+   #+END_SRC
+
+2. *Access the terminal:*
+   Open the returned URL in your browser to access the web-based terminal.
+
+3. *Check active sessions:*
+   #+BEGIN_SRC bash
+   curl http://localhost/api/status
+   #+END_SRC
+
+* How It Works
+
+1. *Session Creation*: When a new session is requested, the service:
+   - Generates a unique session ID and port
+   - Starts a Wetty process with the specified command
+   - Creates a Traefik configuration file for routing
+   - Sets up automatic cleanup after timeout
+
+2. *Routing*: Traefik dynamically routes requests to ~/session/{session-id}~ to the appropriate Wetty instance
+
+3. *Cleanup*: Sessions are automatically cleaned up after the specified timeout plus a 10-second buffer, removing:
+   - The running process
+   - Traefik configuration file
+   - Session from active sessions registry
